@@ -1,1 +1,293 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Totito</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #141e30, #243b55);
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    .juego {
+      width: 95%;
+      max-width: 420px;
+      padding: 30px;
+      text-align: center;
+      background: rgba(255,255,255,0.08);
+      border-radius: 20px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 36px;
+    }
+
+    .marcador {
+      display: flex;
+      justify-content: space-around;
+      margin: 25px 0;
+      font-size: 18px;
+    }
+
+    .marcador strong {
+      display: block;
+      font-size: 30px;
+      margin-top: 8px;
+    }
+
+    #estado {
+      font-size: 20px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .tablero {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 20px auto;
+    }
+
+    .celda {
+      aspect-ratio: 1;
+      background: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 55px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .celda:hover:not(:disabled) {
+      background: #dce9ff;
+      transform: scale(1.04);
+    }
+
+    .celda:disabled {
+      cursor: default;
+    }
+
+    .x {
+      color: #ff4757;
+    }
+
+    .o {
+      color: #1e90ff;
+    }
+
+    .ganadora {
+      background: #2ed573 !important;
+    }
+
+    .boton {
+      width: 100%;
+      padding: 15px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 10px;
+      background: #2ed573;
+      color: #10251a;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .boton:hover {
+      background: #26bd65;
+    }
+
+    .secundario {
+      background: #576574;
+      color: white;
+    }
+
+    .secundario:hover {
+      background: #475463;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="juego">
+    <h1>🎮 TOTITO</h1>
+    <p>Juego de Tic Tac Toe</p>
+
+    <div class="marcador">
+      <div>
+        Jugador X
+        <strong id="puntosX">0</strong>
+      </div>
+      <div>
+        Empates
+        <strong id="empates">0</strong>
+      </div>
+      <div>
+        Jugador O
+        <strong id="puntosO">0</strong>
+      </div>
+    </div>
+
+    <div id="estado" aria-live="polite">
+      Turno del jugador X
+    </div>
+
+    <div class="tablero" id="tablero">
+      <button class="celda" data-index="0"></button>
+      <button class="celda" data-index="1"></button>
+      <button class="celda" data-index="2"></button>
+      <button class="celda" data-index="3"></button>
+      <button class="celda" data-index="4"></button>
+      <button class="celda" data-index="5"></button>
+      <button class="celda" data-index="6"></button>
+      <button class="celda" data-index="7"></button>
+      <button class="celda" data-index="8"></button>
+    </div>
+
+    <button class="boton" onclick="reiniciarPartida()">
+      Nueva partida
+    </button>
+
+    <button class="boton secundario"
+            onclick="reiniciarTodo()">
+      Reiniciar marcador
+    </button>
+  </div>
+
+  <script>
+    const celdas = document.querySelectorAll(".celda");
+    const estado = document.getElementById("estado");
+
+    let tablero = Array(9).fill("");
+    let jugadorActual = "X";
+    let juegoActivo = true;
+
+    let puntosX = 0;
+    let puntosO = 0;
+    let empates = 0;
+
+    const combinacionesGanadoras = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+    ];
+
+    celdas.forEach(celda => {
+      celda.addEventListener("click", jugar);
+    });
+
+    function jugar(evento) {
+      const celda = evento.target;
+      const indice = Number(celda.dataset.index);
+
+      if (!juegoActivo || tablero[indice] !== "") {
+        return;
+      }
+
+      tablero[indice] = jugadorActual;
+      celda.textContent = jugadorActual;
+      celda.classList.add(jugadorActual.toLowerCase());
+      celda.disabled = true;
+
+      const resultado = comprobarGanador();
+
+      if (resultado) {
+        juegoActivo = false;
+
+        resultado.forEach(indiceGanador => {
+          celdas[indiceGanador].classList.add("ganadora");
+        });
+
+        estado.textContent =
+          "🏆 ¡Ganó el jugador " + jugadorActual + "!";
+
+        if (jugadorActual === "X") {
+          puntosX++;
+        } else {
+          puntosO++;
+        }
+
+        actualizarMarcador();
+        return;
+      }
+
+      if (tablero.every(valor => valor !== "")) {
+        juegoActivo = false;
+        empates++;
+        estado.textContent = "🤝 ¡Empate!";
+        actualizarMarcador();
+        return;
+      }
+
+      jugadorActual = jugadorActual === "X" ? "O" : "X";
+      estado.textContent = "Turno del jugador " + jugadorActual;
+    }
+
+    function comprobarGanador() {
+      for (const combinacion of combinacionesGanadoras) {
+        const [a, b, c] = combinacion;
+
+        if (
+          tablero[a] !== "" &&
+          tablero[a] === tablero[b] &&
+          tablero[b] === tablero[c]
+        ) {
+          return combinacion;
+        }
+      }
+
+      return null;
+    }
+
+    function actualizarMarcador() {
+      document.getElementById("puntosX").textContent = puntosX;
+      document.getElementById("puntosO").textContent = puntosO;
+      document.getElementById("empates").textContent = empates;
+    }
+
+    function reiniciarPartida() {
+      tablero = Array(9).fill("");
+      jugadorActual = "X";
+      juegoActivo = true;
+
+      estado.textContent = "Turno del jugador X";
+
+      celdas.forEach(celda => {
+        celda.textContent = "";
+        celda.disabled = false;
+        celda.classList.remove("x", "o", "ganadora");
+      });
+    }
+
+    function reiniciarTodo() {
+      puntosX = 0;
+      puntosO = 0;
+      empates = 0;
+
+      actualizarMarcador();
+      reiniciarPartida();
+    }
+  </script>
+
+</body>
+</html>
+
